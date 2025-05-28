@@ -14,6 +14,7 @@ from typing import Dict, Optional
 import yaml
 from litgpt import Config
 from litgpt.pretrain import setup
+from litgpt.args import TrainArgs, EvalArgs
 from litdata import StreamingDataset, StreamingDataLoader, TokensLoader
 from transformers import AutoTokenizer
 import torch
@@ -165,11 +166,66 @@ def main():
             storage_options=storage_options,
         )
     
-    # Override the data module in config
-    config["data"] = data_module
+    # Create TrainArgs from config
+    train_config = config.get("train", {})
+    train_args = TrainArgs(
+        save_interval=train_config.get("save_interval", 1000),
+        log_interval=train_config.get("log_interval", 10),
+        global_batch_size=train_config.get("global_batch_size", 512),
+        micro_batch_size=train_config.get("micro_batch_size", 64),
+        lr_warmup_steps=train_config.get("lr_warmup_steps", 2000),
+        max_tokens=train_config.get("max_tokens", 100_000_000_000),
+        max_seq_length=train_config.get("max_seq_length", 2048),
+        max_norm=train_config.get("max_norm", 1.0),
+        min_lr=train_config.get("min_lr", 6e-5),
+        tie_embeddings=train_config.get("tie_embeddings", False),
+    )
     
-    # Run LitGPT pretraining
-    setup(**config)
+    # Create EvalArgs from config
+    eval_config = config.get("eval", {})
+    eval_args = EvalArgs(
+        interval=eval_config.get("interval", 1000),
+        max_iters=eval_config.get("max_iters", 100),
+    )
+    
+    # Extract optimizer configuration
+    optimizer = config.get("optimizer", "AdamW")
+    optimizer_args = config.get("optimizer_args", {})
+    
+    # Create optimizer config string or dict
+    if optimizer_args:
+        optimizer_config = {
+            "class_path": f"torch.optim.{optimizer}",
+            "init_args": {
+                "lr": train_config.get("learning_rate", 6e-4),
+                **optimizer_args
+            }
+        }
+    else:
+        optimizer_config = optimizer
+    
+    # Extract logger configuration
+    logger_name = config.get("logger_name", "tensorboard")
+    logger_args = config.get("logger_args", {})
+    
+    # Call setup with the correct arguments
+    setup(
+        model_name=config.get("model_name"),
+        model_config=None,  # Use default config for the model
+        out_dir=Path(config.get("out_dir", "./checkpoints")),
+        precision=config.get("precision", "bf16-mixed"),
+        initial_checkpoint_dir=None,
+        resume=config.get("resume", False),
+        data=data_module,
+        train=train_args,
+        eval=eval_args,
+        optimizer=optimizer_config,
+        devices=config.get("devices", 8),
+        num_nodes=config.get("num_nodes", 1),
+        tokenizer_dir=None,  # Use default tokenizer
+        logger_name=logger_name,
+        seed=42,  # Default seed
+    )
 
 
 if __name__ == "__main__":
