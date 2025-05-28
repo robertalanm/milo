@@ -1,0 +1,28 @@
+# Core dependencies
+litgpt[all]>=0.4.0
+litdata>=0.2.0
+torch>=2.1.0
+transformers>=4.38.0
+
+# For R2/S3 support
+boto3>=1.28.0
+s5cmd  # Optional but recommended for faster S3 transfers
+s3fs>=2023.1.0  # For S3 filesystem access
+
+# For Parquet support
+pyarrow>=14.0.0
+pandas>=2.0.0  # Optional, for better parquet compatibility
+
+# Additional utilities
+pyyaml>=6.0
+tqdm>=4.65.0
+numpy>=1.24.0
+
+# For monitoring and logging
+tensorboard>=2.14.0
+wandb  # Optional, for Weights & Biases logging
+
+# Development dependencies
+pytest>=7.4.0
+black>=23.0.0
+isort>=5.12.0 

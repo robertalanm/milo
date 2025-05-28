@@ -1,0 +1,64 @@
+# Configuration for pretraining Qwen-2.5 1.5B on 8 GPUs with R2 Parquet streaming
+
+# Model configuration
+model_name: Qwen2.5-1.5B
+
+# Output directory for checkpoints
+out_dir: ./checkpoints/qwen2.5-1.5b-pretrain-parquet
+
+# Training precision - bf16-mixed for better performance on modern GPUs
+precision: bf16-mixed
+
+# Number of devices and nodes
+devices: 8
+num_nodes: 1
+
+# Data configuration - using Parquet format from R2
+data:
+  format: parquet
+  path: s3://dclm-2/mlfoundations-dclm-baseline-1.0-parquet-optimized
+  tokenizer: Qwen/Qwen2.5-1.5B
+  num_workers: 8
+  pack_samples: true
+
+# Training arguments
+train:
+  # Total batch size across all devices
+  global_batch_size: 512
+  # Micro batch size per device (512 / 8 = 64)
+  micro_batch_size: 64
+  # Learning rate schedule
+  learning_rate: 6e-4
+  min_lr: 6e-5
+  lr_warmup_steps: 2000
+  # Total training tokens (100B tokens as example)
+  max_tokens: 100_000_000_000
+  # Sequence length
+  max_seq_length: 2048
+  # Gradient clipping
+  max_norm: 1.0
+  # Checkpoint saving
+  save_interval: 1000
+  log_interval: 10
+  # Weight tying
+  tie_embeddings: false
+
+# Evaluation arguments
+eval:
+  interval: 1000
+  max_iters: 100
+
+# Optimizer configuration
+optimizer: AdamW
+optimizer_args:
+  weight_decay: 0.1
+  betas: [0.9, 0.95]
+
+# Logger configuration - using TensorBoard
+logger_name: tensorboard
+logger_args:
+  name: qwen2.5-1.5b-pretrain-parquet
+  flush_logs_every_n_steps: 10
+
+# Resume training if checkpoint exists
+resume: true 
