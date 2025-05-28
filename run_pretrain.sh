@@ -29,7 +29,7 @@ fi
 
 # Method 1: Using the custom script with R2 support (RECOMMENDED)
 echo "Running custom pretraining script with R2 streaming support..."
-# python pretrain_qwen_r2.py $CONFIG_FILE
+python pretrain_qwen_r2.py $CONFIG_FILE
 
 # Alternative Method 2: Using LitGPT CLI directly
 # Note: This only works with standard LitGPT data modules
@@ -44,7 +44,7 @@ echo "Running custom pretraining script with R2 streaming support..."
 # Alternative Method 3: Using torchrun for distributed training
 # Uncomment below for explicit distributed training control
 #
-torchrun \
-    --standalone \
-    --nproc_per_node=$NUM_GPUS \
-    pretrain_qwen_r2.py $CONFIG_FILE 
+# torchrun \
+#     --standalone \
+#     --nproc_per_node=$NUM_GPUS \
+#     pretrain_qwen_r2.py $CONFIG_FILE 
