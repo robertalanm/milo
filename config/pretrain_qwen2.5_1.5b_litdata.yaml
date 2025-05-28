@@ -1,4 +1,4 @@
-# Configuration for pretraining Qwen-2.5 1.5B on 8 GPUs with R2 streaming
+# Configuration for pretraining Qwen-2.5 1.5B on 8 GPUs with R2 LitData streaming
 
 # Model configuration
 model_name: Qwen2.5-1.5B
@@ -14,8 +14,9 @@ devices: 8
 num_nodes: 1
 
 # Data configuration - using LitData for streaming from R2
+# Note: We use a custom key that our script will process
 data: LitData
-data.path: s3://dclm-2/mlfoundations-dclm-baseline-1.0-parquet-optimized  # Replace with your R2 bucket
+data.path: s3://dclm-2/your-litdata-path  # Replace with your actual LitData path
 
 # Training arguments
 train:

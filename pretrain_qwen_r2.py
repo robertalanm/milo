@@ -148,8 +148,11 @@ def main():
     else:
         print("Using LitData format")
         
-        # Extract data path from config
-        data_path = config.get("data.path", "").replace("data.path", "").strip()
+        # Extract data path from config - handle the 'data.path' key
+        data_path = config.pop("data.path", None)  # Remove the key from config
+        if not data_path:
+            raise ValueError("data.path not found in configuration")
+            
         if not data_path.startswith("s3://"):
             raise ValueError(f"Data path must be an S3 URI, got: {data_path}")
         
