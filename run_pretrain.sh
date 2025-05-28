@@ -35,16 +35,16 @@ echo "Running custom pretraining script with R2 streaming support..."
 # Note: This only works with standard LitGPT data modules
 # Uncomment below if you want to use the standard LitGPT CLI
 #
-export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-litgpt pretrain \
-    --config $CONFIG_FILE \
-    --devices $NUM_GPUS \
-    --num_nodes 1
+# export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+# litgpt pretrain \
+#     --config $CONFIG_FILE \
+#     --devices $NUM_GPUS \
+#     --num_nodes 1
 
 # Alternative Method 3: Using torchrun for distributed training
 # Uncomment below for explicit distributed training control
 #
-# torchrun \
-#     --standalone \
-#     --nproc_per_node=$NUM_GPUS \
-#     pretrain_qwen_r2.py $CONFIG_FILE 
+torchrun \
+    --standalone \
+    --nproc_per_node=$NUM_GPUS \
+    pretrain_qwen_r2.py $CONFIG_FILE 
