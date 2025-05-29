@@ -94,20 +94,21 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Check if virtual environment exists
-if [ ! -d "venv" ]; then
+if [ ! -d "~/.venv" ]; then
     echo -e "${YELLOW}Creating virtual environment...${NC}"
-    python3 -m venv venv
+    python3 -m venv ~/.venv
 fi
 
 # Activate virtual environment
 echo -e "${GREEN}Activating virtual environment...${NC}"
-source venv/bin/activate
+source ~/.venv/bin/activate
 
 # Install dependencies if needed
 if ! pip show accelerate &> /dev/null; then
     echo -e "${YELLOW}Installing dependencies...${NC}"
-    pip install --upgrade pip
-    pip install -r requirements.txt
+    pip install uv
+    uv pip install --upgrade pip
+    uv pip install -r requirements.txt
 fi
 
 # Create output directory
