@@ -115,7 +115,7 @@ fi
 mkdir -p "$OUTPUT_DIR"
 
 # Build the base command
-BASE_CMD="python3 train.py \
+BASE_CMD="train.py \
     --dataset_name $DATASET \
     --dataset_config_name $DATASET_CONFIG \
     --model_name_or_path $MODEL \
@@ -127,7 +127,8 @@ BASE_CMD="python3 train.py \
     --checkpointing_steps 1000 \
     --lr_scheduler_type cosine \
     --warmup_ratio 0.1 \
-    --max_seq_length 1024"
+    --max_seq_length 1024 \
+    --streaming"
 
 # Add tracking if enabled
 if [ "$TRACKING" = true ]; then
@@ -140,61 +141,7 @@ if [ -n "$RESUME" ]; then
 fi
 
 # Execute based on mode
-case $MODE in
-    single)
-        echo -e "${GREEN}Starting single GPU training...${NC}"
-        echo -e "${YELLOW}Dataset: $DATASET${NC}"
-        echo -e "${YELLOW}Model: $MODEL${NC}"
-        echo -e "${YELLOW}Batch size: $BATCH_SIZE${NC}"
-        echo -e "${YELLOW}Max steps: $MAX_STEPS${NC}"
-        echo -e "${YELLOW}Learning rate: $LEARNING_RATE${NC}"
-        echo -e "${YELLOW}Output dir: $OUTPUT_DIR${NC}"
-        echo ""
-        
-        # Single GPU training
-        CUDA_VISIBLE_DEVICES=0 $BASE_CMD
-        ;;
-        
-    multi)
-        echo -e "${GREEN}Starting multi-GPU training...${NC}"
-        echo -e "${YELLOW}Dataset: $DATASET${NC}"
-        echo -e "${YELLOW}Model: $MODEL${NC}"
-        echo -e "${YELLOW}Batch size: $BATCH_SIZE per GPU${NC}"
-        echo -e "${YELLOW}Max steps: $MAX_STEPS${NC}"
-        echo -e "${YELLOW}Learning rate: $LEARNING_RATE${NC}"
-        echo -e "${YELLOW}Output dir: $OUTPUT_DIR${NC}"
-        
-        # Check if accelerate config exists
-        if [ ! -f "accelerate_config.yaml" ]; then
-            echo -e "${YELLOW}No accelerate config found. Running accelerate config...${NC}"
-            accelerate config
-        fi
-        
-        # Multi-GPU training with accelerate
-        accelerate launch --config_file accelerate_config.yaml $BASE_CMD
-        ;;
-        
-    stream)
-        echo -e "${GREEN}Starting training with streaming dataset...${NC}"
-        echo -e "${YELLOW}Dataset: $DATASET (streaming)${NC}"
-        echo -e "${YELLOW}Model: $MODEL${NC}"
-        echo -e "${YELLOW}Batch size: $BATCH_SIZE${NC}"
-        echo -e "${YELLOW}Max steps: $MAX_STEPS${NC}"
-        echo -e "${YELLOW}Learning rate: $LEARNING_RATE${NC}"
-        echo -e "${YELLOW}Output dir: $OUTPUT_DIR${NC}"
-        echo ""
-        
-        # Streaming dataset training
-        $BASE_CMD --streaming
-        ;;
-        
-    *)
-        echo -e "${RED}Invalid mode: $MODE${NC}"
-        echo "Valid modes are: single, multi, stream"
-        exit 1
-        ;;
-esac
-
+accelerate launch --config_file accelerate_config.yaml $BASE_CMD
 # Check exit status
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}Training completed successfully!${NC}"
