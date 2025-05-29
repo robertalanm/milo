@@ -93,23 +93,23 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Check if virtual environment exists
-if [ ! -d "~/.venv" ]; then
-    echo -e "${YELLOW}Creating virtual environment...${NC}"
-    python3 -m venv ~/.venv
-fi
+# # Check if virtual environment exists
+# if [ ! -d "~/.venv" ]; then
+#     echo -e "${YELLOW}Creating virtual environment...${NC}"
+#     python3 -m venv ~/.venv
+# fi
 
-# Activate virtual environment
-echo -e "${GREEN}Activating virtual environment...${NC}"
-source ~/.venv/bin/activate
+# # Activate virtual environment
+# echo -e "${GREEN}Activating virtual environment...${NC}"
+# source ~/.venv/bin/activate
 
-# Install dependencies if needed
-if ! pip show accelerate &> /dev/null; then
-    echo -e "${YELLOW}Installing dependencies...${NC}"
-    pip install uv
-    uv pip install --upgrade pip
-    uv pip install -r requirements.txt
-fi
+# # Install dependencies if needed
+# if ! pip show accelerate &> /dev/null; then
+#     echo -e "${YELLOW}Installing dependencies...${NC}"
+#     pip install uv
+#     uv pip install --upgrade pip
+#     uv pip install -r requirements.txt
+# fi
 
 # Create output directory
 mkdir -p "$OUTPUT_DIR"
