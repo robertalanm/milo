@@ -115,7 +115,7 @@ done
 mkdir -p "$OUTPUT_DIR"
 
 # Build the base command
-BASE_CMD="python train.py \
+BASE_CMD="python3 train.py \
     --dataset_name $DATASET \
     --dataset_config_name $DATASET_CONFIG \
     --model_name_or_path $MODEL \
