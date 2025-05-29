@@ -42,7 +42,7 @@ LEARNING_RATE=5e-5
 OUTPUT_DIR="./output"
 RESUME=""
 TRACKING=false
-DATASET_CONFIG="en"
+DATASET_CONFIG="default"
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
