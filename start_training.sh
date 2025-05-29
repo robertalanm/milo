@@ -34,7 +34,7 @@ usage() {
 
 # Default values
 MODE="multi"
-DATASET="mlfoundations/dclm-baseline-1.0"
+DATASET="mlfoundations/dclm-baseline-1.0-parquet"
 MODEL="Qwen/Qwen2.5-1.5B-Instruct"
 BATCH_SIZE=8
 MAX_STEPS=10000

@@ -22,4 +22,7 @@ wandb>=0.15.0
 
 # Utilities
 sentencepiece>=0.1.99  # For some tokenizers
-protobuf>=3.20.0 
+protobuf>=3.20.0
+
+# Compression support
+zstandard>=0.21.0  # For zstd compressed datasets 
