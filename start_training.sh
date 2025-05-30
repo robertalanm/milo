@@ -35,8 +35,7 @@ usage() {
 # Default values
 MODE="multi"
 DATASET="mlfoundations/dclm-baseline-1.0-parquet"
-MODEL="deepseek-ai/DeepSeek-V2"
-CONFIG="Qwen/Qwen2.5-3B"
+MODEL="Qwen/Qwen2.5-3B"
 BATCH_SIZE=8
 MAX_STEPS=100000
 LEARNING_RATE=5e-5
@@ -44,6 +43,7 @@ OUTPUT_DIR="./output"
 RESUME=""
 TRACKING=true
 DATASET_CONFIG="default"
+CONFIG="configs/3b_main.yaml"
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -119,7 +119,7 @@ done
 BASE_CMD="train.py \
     --dataset_name $DATASET \
     --dataset_config_name $DATASET_CONFIG \
-    --config_name $CONFIG \
+    --config_name $MODEL \
     --per_device_train_batch_size $BATCH_SIZE \
     --max_train_steps $MAX_STEPS \
     --learning_rate $LEARNING_RATE \
