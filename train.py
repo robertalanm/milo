@@ -72,6 +72,11 @@ def parse_args():
         help="Pretrained config name or path if not the same as model_name",
     )
     parser.add_argument(
+        "--from_scratch",
+        action="store_true",
+        help="Train model from scratch instead of from pretrained weights",
+    )
+    parser.add_argument(
         "--tokenizer_name",
         type=str,
         default=None,
@@ -217,6 +222,12 @@ def parse_args():
 def main():
     args = parse_args()
     
+    # Store whether we adjusted learning rate for logging later
+    adjusted_lr = False
+    if args.from_scratch and args.learning_rate == 5e-5:
+        args.learning_rate = 1e-4
+        adjusted_lr = True
+    
     # Initialize the accelerator
     accelerator_log_kwargs = {}
     if args.with_tracking:
@@ -236,6 +247,10 @@ def main():
         logger.setLevel("INFO")
     else:
         logger.setLevel("ERROR")
+    
+    # Log learning rate adjustment after accelerator is initialized
+    if adjusted_lr:
+        logger.info(f"Training from scratch: adjusted learning rate to {args.learning_rate}")
     
     # Set seed
     if args.seed is not None:
@@ -298,10 +313,15 @@ def main():
     # Tokenize dataset
     logger.info("Tokenizing dataset")
     if args.streaming:
+        # Get column names from the first batch for streaming datasets
+        # We need to peek at the dataset to get column names
+        first_batch = next(iter(dataset.take(1)))
+        column_names = list(first_batch.keys())
+        
         tokenized_dataset = dataset.map(
             tokenize_function,
             batched=True,
-            remove_columns=["text"],
+            remove_columns=column_names,
         )
     else:
         tokenized_dataset = dataset.map(
@@ -342,11 +362,28 @@ def main():
     else:
         raise ValueError("You must provide either a model name or a config name")
     
-    model = AutoModelForCausalLM.from_pretrained(
-        args.model_name_or_path,
-        config=config,
-        trust_remote_code=True,
-    )
+    if args.from_scratch:
+        logger.info("Initializing model from scratch with random weights")
+        model = AutoModelForCausalLM.from_config(config, trust_remote_code=True)
+        
+        # Initialize weights properly for training from scratch
+        def _init_weights(module):
+            if isinstance(module, (torch.nn.Linear, torch.nn.Embedding)):
+                module.weight.data.normal_(mean=0.0, std=config.initializer_range)
+                if isinstance(module, torch.nn.Linear) and module.bias is not None:
+                    module.bias.data.zero_()
+            elif isinstance(module, torch.nn.LayerNorm):
+                module.bias.data.zero_()
+                module.weight.data.fill_(1.0)
+        
+        model.apply(_init_weights)
+        logger.info(f"Model initialized with {sum(p.numel() for p in model.parameters()):,} parameters")
+    else:
+        model = AutoModelForCausalLM.from_pretrained(
+            args.model_name_or_path,
+            config=config,
+            trust_remote_code=True,
+        )
     
     # Resize token embeddings
     model.resize_token_embeddings(len(tokenizer))
@@ -402,8 +439,17 @@ def main():
     
     # Initialize trackers
     if args.with_tracking:
+        logger.info("Initializing trackers...")
         experiment_config = vars(args)
-        accelerator.init_trackers("clm_pretraining", experiment_config)
+        accelerator.init_trackers("milo-one-3b-training", experiment_config)
+
+        # if args.report_to == "wandb":
+        #     logger.info("Initializing wandb trackers...")
+        #     accelerator.init_trackers(
+        #         "milo-one-3b-training",
+        #         config=vars(args),
+        #         init_kwargs={"wandb": {"entity": "0xcarro"}}
+        #     )
     
     # Train!
     total_batch_size = args.per_device_train_batch_size * accelerator.num_processes * args.gradient_accumulation_steps
@@ -457,7 +503,14 @@ def main():
     total_loss = 0
     train_losses = []
     
+    logger.info("Starting training loop...")
+    
+    # Track training start time for tokens/sec calculation
+    training_start_time = time.time()
+    
     for epoch in range(starting_epoch, args.num_train_epochs):
+        logger.info(f"Starting epoch {epoch + 1} of {args.num_train_epochs}")
+        
         if args.resume_from_checkpoint and epoch == starting_epoch and resume_step is not None:
             # Skip the first `n` batches in the dataloader when resuming from a checkpoint
             active_dataloader = accelerator.skip_first_batches(train_dataloader, resume_step)
@@ -479,11 +532,25 @@ def main():
                 progress_bar.update(1)
                 completed_steps += 1
                 
+                # Log every step to progress bar
+                current_loss = loss.detach().float().item()
+                
+                # Calculate tokens per second
+                elapsed_time = time.time() - training_start_time
+                tokens_processed = total_batch_size * args.max_seq_length * completed_steps
+                tokens_per_sec = tokens_processed / elapsed_time if elapsed_time > 0 else 0
+                
+                progress_bar.set_postfix({
+                    'loss': f'{current_loss:.4f}', 
+                    'lr': f'{lr_scheduler.get_last_lr()[0]:.2e}',
+                    'tokens/s': f'{tokens_per_sec:.0f}'
+                })
+                
                 # Logging
                 if completed_steps % args.logging_steps == 0:
-                    avg_loss = accelerator.gather(total_loss).mean().item() / args.logging_steps
+                    avg_loss = accelerator.gather(total_loss).mean().item() / args.logging_steps / args.gradient_accumulation_steps
                     train_losses.append(avg_loss)
-                    logger.info(f"Step: {completed_steps}, Loss: {avg_loss:.4f}, LR: {lr_scheduler.get_last_lr()[0]:.2e}")
+                    logger.info(f"Step: {completed_steps}, Loss: {avg_loss:.4f}, LR: {lr_scheduler.get_last_lr()[0]:.2e}, Tokens/sec: {tokens_per_sec:.0f}")
                     
                     if args.with_tracking:
                         accelerator.log(
@@ -492,6 +559,7 @@ def main():
                                 "learning_rate": lr_scheduler.get_last_lr()[0],
                                 "epoch": epoch,
                                 "step": completed_steps,
+                                "tokens_per_second": tokens_per_sec,
                             },
                             step=completed_steps,
                         )

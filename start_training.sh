@@ -35,13 +35,14 @@ usage() {
 # Default values
 MODE="multi"
 DATASET="mlfoundations/dclm-baseline-1.0-parquet"
-MODEL="Qwen/Qwen2.5-1.5B-Instruct"
+MODEL="deepseek-ai/DeepSeek-V2"
+CONFIG="Qwen/Qwen2.5-3B"
 BATCH_SIZE=8
-MAX_STEPS=10000
+MAX_STEPS=100000
 LEARNING_RATE=5e-5
 OUTPUT_DIR="./output"
 RESUME=""
-TRACKING=false
+TRACKING=true
 DATASET_CONFIG="default"
 
 # Parse command line arguments
@@ -118,7 +119,7 @@ done
 BASE_CMD="train.py \
     --dataset_name $DATASET \
     --dataset_config_name $DATASET_CONFIG \
-    --model_name_or_path $MODEL \
+    --config_name $CONFIG \
     --per_device_train_batch_size $BATCH_SIZE \
     --max_train_steps $MAX_STEPS \
     --learning_rate $LEARNING_RATE \
@@ -128,7 +129,11 @@ BASE_CMD="train.py \
     --lr_scheduler_type cosine \
     --warmup_ratio 0.1 \
     --max_seq_length 1024 \
-    --streaming"
+    --report_to wandb \
+    --streaming \
+    --from_scratch \
+    --model_name_or_path $MODEL \
+    --with_tracking"
 
 # Add tracking if enabled
 if [ "$TRACKING" = true ]; then
